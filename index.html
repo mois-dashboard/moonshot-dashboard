@@ -80,9 +80,55 @@ tr:last-child td { border-bottom: none; }
 .footer { font-size: 11px; color: #bbb; text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 0.5px solid #eee; }
 @media (max-width: 640px) { .two-col, .prod-grid { grid-template-columns: 1fr; } }
 @media print { body{background:#fff;} .tabs,.client-bar{display:none;} .panel{display:block!important;} }
+
+/* password overlay */
+#pw-overlay { position:fixed; inset:0; background:#1a1a1a; display:flex; align-items:center; justify-content:center; z-index:9999; }
+#pw-overlay.hidden { display:none; }
+#pw-card { background:#242424; border:0.5px solid #333; border-radius:14px; padding:2.5rem 2rem; width:100%; max-width:340px; text-align:center; }
+#pw-card h2 { font-size:16px; font-weight:500; color:#fff; margin-bottom:4px; }
+#pw-card p { font-size:12px; color:#666; margin-bottom:1.5rem; }
+#pw-input { width:100%; padding:10px 14px; border-radius:8px; border:0.5px solid #444; background:#1a1a1a; color:#fff; font-size:14px; outline:none; margin-bottom:10px; }
+#pw-input:focus { border-color:#1D9E75; }
+#pw-submit { width:100%; padding:10px; border-radius:8px; border:none; background:#1D9E75; color:#fff; font-size:14px; font-weight:500; cursor:pointer; }
+#pw-submit:hover { background:#179060; }
+#pw-error { font-size:12px; color:#e05252; margin-top:8px; min-height:16px; }
 </style>
 </head>
 <body>
+
+<!-- PASSWORD OVERLAY -->
+<div id="pw-overlay">
+  <div id="pw-card">
+    <h2>Moonshot Dashboard</h2>
+    <p>Enter password to continue</p>
+    <input id="pw-input" type="password" placeholder="Password" autocomplete="current-password"/>
+    <button id="pw-submit">Unlock</button>
+    <div id="pw-error"></div>
+  </div>
+</div>
+<script>
+(function(){
+  var overlay = document.getElementById("pw-overlay");
+  var input   = document.getElementById("pw-input");
+  var errEl   = document.getElementById("pw-error");
+  if (sessionStorage.getItem("ms_auth") === "1") { overlay.classList.add("hidden"); return; }
+  function attempt() {
+    if (input.value === "Moonshot2026") {
+      sessionStorage.setItem("ms_auth","1");
+      overlay.classList.add("hidden");
+    } else {
+      errEl.textContent = "Incorrect password";
+      input.value = "";
+      input.focus();
+      setTimeout(function(){ errEl.textContent = ""; }, 2500);
+    }
+  }
+  document.getElementById("pw-submit").addEventListener("click", attempt);
+  input.addEventListener("keydown", function(e){ if(e.key==="Enter") attempt(); });
+  input.focus();
+})();
+</script>
+
 <div class="page">
 
 <!-- CLIENT SWITCHER -->
