@@ -521,8 +521,9 @@ function renderClient(cl) {
     var p7body = document.getElementById("prod7-body");
     p7body.innerHTML = "";
     cl.products.forEach(function(prod){
-      var r = null;
-      cl.prodLast7.forEach(function(row){ if(row.product === prod) r = row; });
+      var r = Array.isArray(cl.prodLast7)
+        ? (function(){ var x=null; cl.prodLast7.forEach(function(row){ if(row.product===prod) x=row; }); return x; })()
+        : cl.prodLast7[prod];
       if(!r || r.spent === 0) return;
       var convCells7 = cl.convDefs.map(function(cd){
         var cnt = r[cd.key] || 0;
