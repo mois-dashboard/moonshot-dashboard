@@ -81,6 +81,18 @@ tr:last-child td { border-bottom: none; }
 @media (max-width: 640px) { .two-col, .prod-grid { grid-template-columns: 1fr; } }
 @media print { body{background:#fff;} .tabs,.client-bar{display:none;} .panel{display:block!important;} }
 
+/* filter bar */
+.filter-bar { display:flex; align-items:center; gap:16px; margin-bottom:1.5rem; padding:10px 14px; background:#1a1a1a; border-radius:10px; flex-wrap:wrap; }
+.filter-bar-section { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.filter-bar-label { font-size:10px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#666; white-space:nowrap; }
+.filter-date-input { background:#2a2a2a; border:0.5px solid #444; color:#ddd; border-radius:6px; padding:5px 9px; font-size:12px; font-family:inherit; outline:none; cursor:pointer; color-scheme:dark; }
+.filter-date-input:focus { border-color:#1D9E75; }
+.filter-sep { color:#555; font-size:12px; }
+.filter-pill { font-size:11px; font-weight:500; padding:4px 12px; border-radius:20px; border:1.5px solid; background:transparent; cursor:pointer; opacity:0.38; transition:opacity 0.15s, background 0.15s, color 0.15s; }
+.filter-pill.on { background:var(--pill-color, #888); color:#fff !important; opacity:1; }
+.filter-pill:hover:not(.on) { opacity:0.65; }
+.conv-chart-note { font-size:11px; color:#aaa; margin-top:6px; min-height:14px; font-style:italic; }
+
 /* password overlay */
 #pw-overlay { position:fixed; inset:0; background:#1a1a1a; display:flex; align-items:center; justify-content:center; z-index:9999; }
 #pw-overlay.hidden { display:none; }
@@ -146,6 +158,20 @@ tr:last-child td { border-bottom: none; }
   <span class="badge">Taboola UA</span>
 </div>
 
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-bar-section">
+    <span class="filter-bar-label">Date</span>
+    <input type="date" id="filter-start" class="filter-date-input"/>
+    <span class="filter-sep">–</span>
+    <input type="date" id="filter-end" class="filter-date-input"/>
+  </div>
+  <div class="filter-bar-section">
+    <span class="filter-bar-label">Products</span>
+    <div id="prod-pill-filter" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+  </div>
+</div>
+
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="switchTab('overview',this)">Overview</button>
@@ -161,7 +187,7 @@ tr:last-child td { border-bottom: none; }
     <div class="card"><div class="card-title">Spend by product &mdash; daily stacked</div><div class="chart-wrap"><canvas id="prodSpendChart"></canvas></div></div>
   </div>
   <div class="two-col">
-    <div class="card"><div class="card-title" id="conv-chart-title">Daily conversions by type</div><div class="chart-wrap"><canvas id="convChart"></canvas></div></div>
+    <div class="card"><div class="card-title" id="conv-chart-title">Daily conversions by type</div><div class="chart-wrap"><canvas id="convChart"></canvas></div><div id="conv-chart-note" class="conv-chart-note"></div></div>
     <div class="card"><div class="card-title">Spend split by OS</div><div class="chart-wrap"><canvas id="osChart"></canvas></div></div>
   </div>
 </div>
@@ -202,239 +228,7 @@ tr:last-child td { border-bottom: none; }
 <div class="footer" id="footer-text"></div>
 </div>
 
-<script>
-var CLIENTS = [
-  {
-    name: "Moonshot",
-    period: "Jan 5 – Mar 30, 2026",
-    products: ["Baba", "CC", "Spree", "PlayStar", "Lonestar"],
-    productColors: {"Baba":"#1D9E75","CC":"#378ADD","Spree":"#7F77DD","PlayStar":"#E8724A","Lonestar":"#E8C14A"},
-    productChartColors: {"Baba":"#1D9E75","CC":"#378ADD","Spree":"#7F77DD","PlayStar":"#E8724A","Lonestar":"#E8C14A"},
-    productPills: {"Baba":"pill-baba","CC":"pill-cc","Spree":"pill-spree","PlayStar":"pill-playstar","Lonestar":"pill-lonestar"},
-    convDefs: [
-      {key:"c0", label:"Clickouts"},
-      {key:"c1", label:"Signups"},
-      {key:"c2", label:"Sales"},
-      {key:"c3", label:"Q. Sales"}
-    ],
-    kpiConv: "c3",
-    kpiLabel: "Q. Sales",
-    labels: ["Jan 5", "Jan 6", "Jan 7", "Jan 8", "Jan 9", "Jan 10", "Jan 11", "Jan 13", "Jan 14", "Jan 18", "Jan 19", "Jan 20", "Jan 21", "Jan 22", "Jan 23", "Jan 24", "Jan 25", "Jan 26", "Jan 27", "Jan 28", "Jan 29", "Jan 30", "Jan 31", "Feb 1", "Feb 2", "Feb 3", "Feb 5", "Feb 6", "Feb 7", "Feb 8", "Feb 9", "Feb 10", "Feb 11", "Feb 12", "Feb 13", "Feb 14", "Feb 15", "Feb 16", "Feb 17", "Feb 18", "Feb 19", "Feb 20", "Feb 21", "Feb 22", "Feb 23", "Feb 24", "Feb 25", "Feb 26", "Feb 27", "Feb 28", "Mar 1", "Mar 2", "Mar 3", "Mar 4", "Mar 5", "Mar 6", "Mar 7", "Mar 8", "Mar 9", "Mar 10", "Mar 11", "Mar 12", "Mar 13", "Mar 14", "Mar 15", "Mar 16", "Mar 17", "Mar 18", "Mar 19", "Mar 20", "Mar 21", "Mar 22", "Mar 23", "Mar 24", "Mar 25", "Mar 26", "Mar 27", "Mar 28", "Mar 29", "Mar 30"],
-    totals: {spent:96990.04, clicks:175913, impr:14848008, c0:28307, c1:4572, c2:223, c3:166},
-    dayTotals: [
-      {spent:28.88, clicks:74, impr:4947, c0:2, c1:0, c2:0, c3:0},
-      {spent:112.18, clicks:247, impr:23279, c0:6, c1:0, c2:0, c3:0},
-      {spent:196.45, clicks:430, impr:37725, c0:22, c1:0, c2:0, c3:0},
-      {spent:177.94, clicks:432, impr:37069, c0:21, c1:0, c2:0, c3:0},
-      {spent:162.28, clicks:396, impr:30215, c0:21, c1:0, c2:0, c3:0},
-      {spent:186.25, clicks:457, impr:38841, c0:21, c1:0, c2:0, c3:0},
-      {spent:57.58, clicks:151, impr:11970, c0:10, c1:0, c2:0, c3:0},
-      {spent:90.54, clicks:196, impr:16827, c0:18, c1:2, c2:0, c3:0},
-      {spent:54.37, clicks:137, impr:11067, c0:8, c1:0, c2:0, c3:0},
-      {spent:230.09, clicks:532, impr:53592, c0:27, c1:2, c2:0, c3:0},
-      {spent:498.28, clicks:965, impr:130739, c0:56, c1:4, c2:0, c3:0},
-      {spent:347.06, clicks:966, impr:137065, c0:47, c1:2, c2:0, c3:0},
-      {spent:997.61, clicks:1916, impr:264783, c0:134, c1:0, c2:0, c3:0},
-      {spent:738.68, clicks:1621, impr:217412, c0:120, c1:4, c2:0, c3:0},
-      {spent:517.64, clicks:1435, impr:138833, c0:118, c1:2, c2:0, c3:0},
-      {spent:431.67, clicks:1091, impr:91978, c0:118, c1:4, c2:0, c3:0},
-      {spent:606.41, clicks:1336, impr:141706, c0:101, c1:0, c2:0, c3:0},
-      {spent:747.17, clicks:1513, impr:199913, c0:104, c1:9, c2:0, c3:0},
-      {spent:737.84, clicks:1416, impr:198362, c0:175, c1:4, c2:2, c3:1},
-      {spent:900.27, clicks:1498, impr:214826, c0:164, c1:3, c2:0, c3:0},
-      {spent:683.35, clicks:1299, impr:209562, c0:133, c1:4, c2:0, c3:0},
-      {spent:951.59, clicks:1692, impr:263852, c0:111, c1:0, c2:0, c3:0},
-      {spent:965.01, clicks:2096, impr:315702, c0:184, c1:14, c2:0, c3:0},
-      {spent:938.74, clicks:1865, impr:253833, c0:160, c1:2, c2:0, c3:0},
-      {spent:932.84, clicks:1838, impr:232216, c0:120, c1:1, c2:0, c3:0},
-      {spent:329.44, clicks:772, impr:109069, c0:77, c1:5, c2:0, c3:0},
-      {spent:101.30, clicks:297, impr:17981, c0:19, c1:2, c2:0, c3:0},
-      {spent:235.80, clicks:670, impr:35546, c0:79, c1:26, c2:1, c3:2},
-      {spent:241.06, clicks:441, impr:22660, c0:60, c1:14, c2:2, c3:3},
-      {spent:555.90, clicks:1196, impr:70205, c0:177, c1:48, c2:1, c3:1},
-      {spent:809.90, clicks:1641, impr:105177, c0:222, c1:44, c2:0, c3:0},
-      {spent:712.67, clicks:1262, impr:77884, c0:119, c1:28, c2:0, c3:0},
-      {spent:817.36, clicks:1198, impr:77630, c0:143, c1:40, c2:2, c3:1},
-      {spent:878.84, clicks:1203, impr:107917, c0:135, c1:27, c2:3, c3:1},
-      {spent:773.04, clicks:1331, impr:100831, c0:119, c1:21, c2:1, c3:0},
-      {spent:576.59, clicks:1033, impr:60557, c0:132, c1:27, c2:1, c3:0},
-      {spent:529.80, clicks:977, impr:103480, c0:87, c1:20, c2:1, c3:0},
-      {spent:511.44, clicks:949, impr:113488, c0:107, c1:20, c2:1, c3:0},
-      {spent:732.38, clicks:982, impr:116333, c0:130, c1:26, c2:2, c3:2},
-      {spent:648.42, clicks:1030, impr:199935, c0:148, c1:20, c2:0, c3:0},
-      {spent:408.33, clicks:669, impr:143105, c0:121, c1:14, c2:0, c3:0},
-      {spent:387.41, clicks:495, impr:87124, c0:135, c1:16, c2:0, c3:0},
-      {spent:395.32, clicks:534, impr:101366, c0:114, c1:27, c2:0, c3:0},
-      {spent:399.14, clicks:517, impr:88726, c0:126, c1:26, c2:2, c3:1},
-      {spent:156.21, clicks:223, impr:20074, c0:65, c1:11, c2:2, c3:2},
-      {spent:506.34, clicks:1782, impr:162368, c0:959, c1:13, c2:0, c3:0},
-      {spent:678.50, clicks:2583, impr:237869, c0:1333, c1:11, c2:1, c3:0},
-      {spent:1175.82, clicks:2223, impr:362836, c0:839, c1:30, c2:2, c3:0},
-      {spent:1685.01, clicks:2333, impr:445215, c0:401, c1:55, c2:5, c3:2},
-      {spent:1563.36, clicks:2197, impr:427334, c0:241, c1:42, c2:3, c3:2},
-      {spent:1751.17, clicks:2549, impr:285151, c0:333, c1:48, c2:6, c3:4},
-      {spent:2096.06, clicks:3966, impr:350802, c0:578, c1:86, c2:2, c3:1},
-      {spent:1452.41, clicks:3020, impr:174848, c0:518, c1:88, c2:2, c3:2},
-      {spent:1156.57, clicks:2568, impr:162972, c0:343, c1:60, c2:3, c3:3},
-      {spent:1580.67, clicks:3572, impr:252043, c0:444, c1:67, c2:4, c3:4},
-      {spent:1978.65, clicks:4213, impr:291308, c0:518, c1:79, c2:2, c3:1},
-      {spent:1980.07, clicks:3890, impr:275206, c0:483, c1:80, c2:4, c3:4},
-      {spent:1669.80, clicks:3151, impr:220916, c0:545, c1:86, c2:4, c3:1},
-      {spent:1572.49, clicks:3126, impr:246594, c0:448, c1:81, c2:3, c3:3},
-      {spent:1608.34, clicks:3622, impr:239991, c0:539, c1:110, c2:5, c3:5},
-      {spent:1616.16, clicks:3929, impr:182476, c0:686, c1:143, c2:9, c3:6},
-      {spent:1630.33, clicks:3580, impr:167996, c0:662, c1:159, c2:9, c3:8},
-      {spent:1611.14, clicks:3260, impr:247351, c0:487, c1:89, c2:5, c3:4},
-      {spent:1596.89, clicks:2966, impr:187661, c0:531, c1:122, c2:8, c3:7},
-      {spent:1470.38, clicks:2704, impr:152955, c0:547, c1:98, c2:5, c3:3},
-      {spent:1575.20, clicks:3293, impr:197351, c0:650, c1:124, c2:5, c3:8},
-      {spent:2026.53, clicks:3650, impr:243324, c0:728, c1:155, c2:8, c3:5},
-      {spent:2232.09, clicks:3954, impr:267169, c0:829, c1:151, c2:11, c3:4},
-      {spent:2595.74, clicks:4831, impr:350409, c0:825, c1:154, c2:11, c3:7},
-      {spent:3036.47, clicks:5040, impr:299892, c0:997, c1:181, c2:11, c3:9},
-      {spent:3079.97, clicks:4641, impr:270346, c0:1010, c1:202, c2:8, c3:3},
-      {spent:3139.47, clicks:4786, impr:284846, c0:1021, c1:193, c2:9, c3:9},
-      {spent:3199.02, clicks:5003, impr:285530, c0:1071, c1:209, c2:7, c3:5},
-      {spent:3520.65, clicks:6084, impr:422335, c0:894, c1:196, c2:0, c3:0},
-      {spent:3281.96, clicks:5317, impr:340514, c0:875, c1:196, c2:11, c3:12},
-      {spent:3147.67, clicks:4646, impr:350048, c0:744, c1:171, c2:12, c3:8},
-      {spent:3159.27, clicks:4737, impr:345159, c0:695, c1:140, c2:5, c3:5},
-      {spent:3204.37, clicks:4600, impr:344224, c0:704, c1:123, c2:6, c3:4},
-      {spent:3366.56, clicks:5056, impr:348294, c0:700, c1:148, c2:7, c3:4},
-      {spent:3553.84, clicks:6022, impr:389273, c0:813, c1:163, c2:9, c3:9}
-    ],
-    prodDaily: {
-      "Baba": [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 130.99, 164.96, 246.98, 510.55, 398.83, 559.37, 721.67, 371.59, 345.93, 405.07, 457.37, 458.83, 453.80, 426.10, 555.63, 654.09, 654.20, 667.71, 673.66, 739.77, 853.06, 842.48, 1046.52, 1295.94, 1507.93, 1558.82, 1601.83, 1537.14, 1808.84, 1788.11, 1775.76, 1774.99, 1772.60, 1911.19, 2237.29],
-      "CC": [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 101.30, 235.80, 241.06, 555.90, 672.01, 314.99, 382.55, 377.83, 272.63, 139.71, 227.02, 274.75, 503.28, 576.70, 408.33, 387.41, 395.32, 399.14, 156.21, 119.32, 179.37, 494.69, 596.14, 586.70, 590.97, 694.35, 696.91, 692.33, 829.22, 1196.80, 1184.74, 1049.53, 984.66, 878.66, 789.20, 931.02, 943.43, 923.23, 730.61, 722.14, 1184.05, 1185.57, 1299.80, 1528.54, 1521.15, 1537.64, 1536.68, 1522.07, 1291.70, 1177.87, 1166.67, 1156.89, 1129.56, 940.49],
-      "Spree": [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 125.20, 189.74, 202.15, 194.04, 217.61, 274.88, 325.81, 376.06],
-      "PlayStar": [28.88, 112.18, 196.45, 177.94, 162.28, 186.25, 57.58, 90.54, 54.37, 230.09, 498.28, 347.06, 997.61, 738.68, 517.64, 431.67, 606.41, 747.17, 737.84, 900.27, 683.35, 951.59, 965.01, 938.74, 932.84, 329.44, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-      "Lonestar": [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 137.89, 397.68, 434.81, 501.01, 500.41, 436.88, 302.78, 236.69, 229.10, 71.72, 0.00, 0.00, 0.00, 0.00, 0.00, 256.03, 334.17, 434.15, 578.32, 577.83, 600.83, 680.04, 383.91, 118.31, 346.38, 324.48, 336.50, 166.47, 161.73, 174.05, 172.87, 45.11, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
-    },
-    prodOS: [
-      {product:"Baba", os:"Android", spent:23306.96, clicks:32982, impr:1503792, c0:7789, c1:1532, c2:72, c3:59},
-      {product:"CC", os:"Android", spent:26712.05, clicks:38158, impr:2183090, c0:8962, c1:1865, c2:86, c3:60},
-      {product:"CC", os:"iOS", spent:11587.74, clicks:29998, impr:2871847, c0:3273, c1:411, c2:23, c3:20},
-      {product:"Baba", os:"iOS", spent:9386.07, clicks:26269, impr:2126450, c0:2348, c1:305, c2:25, c3:18},
-      {product:"Lonestar", os:"Android", spent:6750.40, clicks:11984, impr:667188, c0:2566, c1:217, c2:7, c3:2},
-      {product:"PlayStar", os:"Android", spent:12620.16, clicks:26371, impr:3385383, c0:2078, c1:62, c2:2, c3:1},
-      {product:"Spree", os:"Android", spent:1905.49, clicks:4018, impr:203594, c0:358, c1:75, c2:5, c3:5},
-      {product:"Lonestar", os:"iOS", spent:1236.14, clicks:2218, impr:295540, c0:217, c1:22, c2:0, c3:0},
-      {product:"CC", os:"Desktop", spent:2314.85, clicks:2530, impr:1019334, c0:536, c1:59, c2:1, c3:1},
-      {product:"Lonestar", os:"Desktop", spent:953.61, clicks:1097, impr:467913, c0:155, c1:21, c2:2, c3:0},
-      {product:"Baba", os:"Desktop", spent:216.57, clicks:288, impr:123877, c0:25, c1:3, c2:0, c3:0}
-    ],
-    campaigns: [
-      {name:"Moonshot_Adept_BabaCasino_Android_WL_260226", product:"Baba", os:"Android", spent:16746.53, clicks:22273, impr:869312, c0:5223, c1:1227, c2:64, c3:51},
-      {name:"Moonshot_Adept_CC_Android_WL_260226", product:"CC", os:"Android", spent:10810.59, clicks:15517, impr:891280, c0:3853, c1:771, c2:35, c3:25},
-      {name:"Moonshot_Adept_CC_iOS_WL_260226", product:"CC", os:"iOS", spent:9935.61, clicks:26911, impr:2410715, c0:2989, c1:380, c2:21, c3:18},
-      {name:"Moonshot_Adept_CC_Android_TestimonialsLP_WL_050226", product:"CC", os:"Android", spent:4497.59, clicks:8223, impr:492112, c0:1309, c1:287, c2:13, c3:11},
-      {name:"Moonshot_Adept_BabaCasino_iOS_Premium_090326", product:"Baba", os:"iOS", spent:6910.40, clicks:20420, impr:1483444, c0:1833, c1:254, c2:23, c3:18},
-      {name:"Moonshot_Adept_BabaCasino_Android_GreyTegna_190326", product:"Baba", os:"Android", spent:3897.48, clicks:5294, impr:237814, c0:1043, c1:216, c2:5, c3:5},
-      {name:"Moonshot_Adept_LS_Android_Playable_WL_030326", product:"Lonestar", os:"Android", spent:1967.82, clicks:2802, impr:169928, c0:191, c1:43, c2:2, c3:1},
-      {name:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Yahoo_180126", product:"PlayStar", os:"Android", spent:4367.52, clicks:7386, impr:1711589, c0:242, c1:20, c2:2, c3:1},
-      {name:"Moonshot_Adept_Spree_Android_WL_220326", product:"Spree", os:"Android", spent:1904.91, clicks:4017, impr:203550, c0:357, c1:74, c2:5, c3:5},
-      {name:"Moonshot_Adept_CC_Android_Premium_110326", product:"CC", os:"Android", spent:5781.26, clicks:6805, impr:323568, c0:1923, c1:447, c2:21, c3:14},
-      {name:"Moonshot_Adept_CC_Android_WL_GreyTegna_190326", product:"CC", os:"Android", spent:1954.17, clicks:2488, impr:139500, c0:622, c1:119, c2:4, c3:1},
-      {name:"Moonshot_Adept_Lonestar_Android_WL_260226", product:"Lonestar", os:"Android", spent:1203.78, clicks:1596, impr:81262, c0:278, c1:50, c2:1, c3:1},
-      {name:"Moonshot_Adept_LoneStar_iOS_WL_230226", product:"Lonestar", os:"iOS", spent:1236.14, clicks:2218, impr:295540, c0:217, c1:22, c2:0, c3:0},
-      {name:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Premium_210126", product:"PlayStar", os:"Android", spent:4625.40, clicks:10951, impr:987504, c0:1428, c1:30, c2:0, c3:0},
-      {name:"Moonshot_Adept_BabaCasino_iOS_WL_230226", product:"Baba", os:"iOS", spent:2145.21, clicks:5367, impr:620476, c0:463, c1:47, c2:2, c3:0},
-      {name:"Moonshot_Adept_CC_Android_WL_Article_160326", product:"CC", os:"Android", spent:3556.36, clicks:4849, impr:324519, c0:1137, c1:236, c2:12, c3:9},
-      {name:"Moonshot_Adept_BabaCasino_Android_Premium_290326", product:"Baba", os:"Android", spent:488.85, clicks:1180, impr:60247, c0:135, c1:27, c2:2, c3:2},
-      {name:"Moonshot_Adept_Lonestar_Android_FunLP_WL_090226", product:"Lonestar", os:"Android", spent:1987.54, clicks:3323, impr:211887, c0:325, c1:89, c2:2, c3:0},
-      {name:"Moonshot_Adept_CC_iOS_Premium_290326", product:"CC", os:"iOS", spent:426.19, clicks:791, impr:121477, c0:74, c1:10, c2:0, c3:0},
-      {name:"Moonshot_Adept_CC_iOS_TestimonialsLP_WL_120226", product:"CC", os:"iOS", spent:1225.94, clicks:2296, impr:339655, c0:210, c1:21, c2:2, c3:2},
-      {name:"Moonshot_Adept_Lonestar_Android_RewardsLP_WL_090226", product:"Lonestar", os:"Android", spent:1261.43, clicks:1997, impr:133356, c0:169, c1:34, c2:2, c3:0},
-      {name:"Moonshot_Adept_CC_Desktop_YahooMail_230226", product:"CC", os:"Desktop", spent:949.77, clicks:978, impr:456857, c0:230, c1:21, c2:1, c3:1},
-      {name:"Moonshot_Adept_PlayStarCas_Android_NJ_ArticleLP_WL_180126", product:"PlayStar", os:"Android", spent:1627.10, clicks:3441, impr:299475, c0:159, c1:6, c2:0, c3:0},
-      {name:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_WL_241225", product:"PlayStar", os:"Android", spent:2000.14, clicks:4593, impr:386815, c0:249, c1:6, c2:0, c3:0},
-      {name:"Moonshot_Adept_BabaCasino_Android_WL_Ads_230326", product:"Baba", os:"Android", spent:1593.76, clicks:1397, impr:201251, c0:206, c1:32, c2:0, c3:0},
-      {name:"Moonshot_Adept_CC_Desktop_TestimonialsLP_WL_120226", product:"CC", os:"Desktop", spent:1365.08, clicks:1552, impr:562477, c0:306, c1:38, c2:0, c3:0},
-      {name:"Moonshot_Adept_LoneStar_Desktop_YahooMail_230226", product:"Lonestar", os:"Desktop", spent:953.61, clicks:1097, impr:467913, c0:155, c1:21, c2:2, c3:0},
-      {name:"Moonshot_Adept_BabaCasino_Desktop_YahooMail_230226", product:"Baba", os:"Desktop", spent:216.57, clicks:288, impr:123877, c0:25, c1:3, c2:0, c3:0},
-      {name:"Moonshot_Adept_CC_Android_BL_230226", product:"CC", os:"Android", spent:112.08, clicks:276, impr:12105, c0:118, c1:5, c2:1, c3:0},
-      {name:"Moonshot_Adept_BabaCasino_iOS_Premium_PredSU_160326", product:"Baba", os:"iOS", spent:330.46, clicks:482, impr:22530, c0:52, c1:4, c2:0, c3:0},
-      {name:"Moonshot_Adept_BabaCasino_Android_BL_230226", product:"Baba", os:"Android", spent:580.34, clicks:2838, impr:135168, c0:1182, c1:30, c2:1, c3:1},
-      {name:"Moonshot_Adept_Lonestar_Android_BL_230226", product:"Lonestar", os:"Android", spent:329.83, clicks:2266, impr:70755, c0:1603, c1:1, c2:0, c3:0},
-      {name:"Moonshot_Adept_Spree_Android_WL_AdsTest_300326", product:"Spree", os:"Android", spent:0.58, clicks:1, impr:44, c0:1, c1:1, c2:0, c3:0},
-      {name:"Moonshot_Adept_CC_Android_WL_ArticleLP_180326", product:"CC", os:"Android", spent:0.00, clicks:0, impr:6, c0:0, c1:0, c2:0, c3:0}
-    ],
-    topAds: {
-      "Baba": [
-        {id:"4246124177", os:"Android", campaign:"Moonshot_Adept_BabaCasino_Android_WL_260226", spent:10347.55, clicks:15237, impr:535696, c0:3100, c1:734, c2:46, c3:36},
-        {id:"4249417550", os:"iOS", campaign:"Moonshot_Adept_BabaCasino_iOS_Premium_090326", spent:4599.27, clicks:13810, impr:977241, c0:1284, c1:184, c2:21, c3:16},
-        {id:"4252796690", os:"Android", campaign:"Moonshot_Adept_BabaCasino_Android_GreyTegna_190326", spent:2442.55, clicks:3826, impr:146889, c0:742, c1:166, c2:3, c3:3},
-        {id:"4246124176", os:"Android", campaign:"Moonshot_Adept_BabaCasino_Android_WL_260226", spent:2428.56, clicks:3416, impr:134747, c0:937, c1:207, c2:5, c3:5},
-        {id:"4245043658", os:"iOS", campaign:"Moonshot_Adept_BabaCasino_iOS_WL_230226", spent:1180.98, clicks:3305, impr:405903, c0:285, c1:36, c2:1, c3:0}
-      ],
-      "CC": [
-        {id:"4245064056", os:"iOS", campaign:"Moonshot_Adept_CC_iOS_WL_260226", spent:6686.58, clicks:19933, impr:1554927, c0:2144, c1:285, c2:18, c3:16},
-        {id:"4246123203", os:"Android", campaign:"Moonshot_Adept_CC_Android_WL_260226", spent:4259.79, clicks:8207, impr:272627, c0:1490, c1:294, c2:12, c3:9},
-        {id:"4250043066", os:"Android", campaign:"Moonshot_Adept_CC_Android_Premium_110326", spent:3301.42, clicks:3636, impr:160289, c0:1121, c1:262, c2:14, c3:9},
-        {id:"4239802737", os:"Android", campaign:"Moonshot_Adept_CC_Android_TestimonialsLP_WL_050226", spent:1761.17, clicks:4069, impr:225506, c0:570, c1:122, c2:1, c3:2},
-        {id:"4239802740", os:"Android", campaign:"Moonshot_Adept_CC_Android_TestimonialsLP_WL_050226", spent:1400.98, clicks:2225, impr:132542, c0:430, c1:90, c2:7, c3:5}
-      ],
-      "Lonestar": [
-        {id:"4247643752", os:"Android", campaign:"Moonshot_Adept_LS_Android_Playable_WL_030326", spent:1498.76, clicks:2206, impr:128270, c0:115, c1:29, c2:1, c3:1},
-        {id:"4240875542", os:"Android", campaign:"Moonshot_Adept_Lonestar_Android_FunLP_WL_090226", spent:871.12, clicks:1622, impr:98598, c0:134, c1:31, c2:0, c3:0},
-        {id:"4246122835", os:"Android", campaign:"Moonshot_Adept_Lonestar_Android_WL_260226", spent:853.56, clicks:1245, impr:56725, c0:186, c1:34, c2:1, c3:1},
-        {id:"4245044997", os:"iOS", campaign:"Moonshot_Adept_LoneStar_iOS_WL_230226", spent:503.81, clicks:834, impr:86564, c0:46, c1:8, c2:0, c3:0},
-        {id:"4240875544", os:"Android", campaign:"Moonshot_Adept_Lonestar_Android_FunLP_WL_090226", spent:465.68, clicks:761, impr:47457, c0:69, c1:21, c2:1, c3:0}
-      ],
-      "PlayStar": [
-        {id:"4216355961", os:"Android", campaign:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Yahoo_180126", spent:1962.96, clicks:3611, impr:695574, c0:115, c1:10, c2:2, c3:1},
-        {id:"4224821470", os:"Android", campaign:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Premium_210126", spent:1550.32, clicks:3711, impr:302111, c0:384, c1:14, c2:0, c3:0},
-        {id:"4224821474", os:"Android", campaign:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Premium_210126", spent:1010.23, clicks:2403, impr:207160, c0:353, c1:8, c2:0, c3:0},
-        {id:"4224821529", os:"Android", campaign:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Premium_210126", spent:945.28, clicks:1921, impr:189091, c0:280, c1:4, c2:0, c3:0},
-        {id:"4216355983", os:"Android", campaign:"Moonshot_Adept_PlayStarCas_Android_NJ_RegLP_Yahoo_180126", spent:902.37, clicks:1357, impr:355929, c0:38, c1:1, c2:0, c3:0}
-      ],
-      "Spree": [
-        {id:"4254802693", os:"Android", campaign:"Moonshot_Adept_Spree_Android_WL_220326", spent:1379.40, clicks:3018, impr:141361, c0:259, c1:50, c2:4, c3:4},
-        {id:"4254802692", os:"Android", campaign:"Moonshot_Adept_Spree_Android_WL_220326", spent:369.87, clicks:701, impr:40143, c0:69, c1:17, c2:1, c3:1},
-        {id:"4254802695", os:"Android", campaign:"Moonshot_Adept_Spree_Android_WL_220326", spent:104.14, clicks:230, impr:13861, c0:15, c1:3, c2:0, c3:0},
-        {id:"4254808693", os:"Android", campaign:"Moonshot_Adept_Spree_Android_WL_220326", spent:28.18, clicks:34, impr:3629, c0:6, c1:2, c2:0, c3:0},
-        {id:"4254808601", os:"Android", campaign:"Moonshot_Adept_Spree_Android_WL_220326", spent:17.70, clicks:26, impr:3609, c0:5, c1:1, c2:0, c3:0}
-      ]
-    },
-    prodLast7: [
-      {product:"Baba",     spent:13068.78, clicks:20524, impr:1241120, c0:2842, c1:617, c2:34, c3:30},
-      {product:"CC",       spent:8385.25,  clicks:12187, impr:1106551, c0:2264, c1:455, c2:11, c3:7},
-      {product:"Spree",    spent:1780.29,  clicks:3751,  impr:192176,  c0:319,  c1:65,  c2:5,  c3:5},
-      {product:"PlayStar", spent:0,        clicks:0,     impr:0,       c0:0,    c1:0,   c2:0,  c3:0},
-      {product:"Lonestar", spent:0,        clicks:0,     impr:0,       c0:0,    c1:0,   c2:0,  c3:0}
-    ],
-    prodLast7Daily: {
-      "Baba": [
-        {spent:1808.84, clicks:3252, impr:228562, c0:404, c1:100, c2:0, c3:0},
-        {spent:1788.11, clicks:2834, impr:156699, c0:437, c1:101, c2:6, c3:7},
-        {spent:1775.76, clicks:2425, impr:153948, c0:369, c1:89,  c2:8, c3:6},
-        {spent:1774.99, clicks:2663, impr:164287, c0:364, c1:78,  c2:3, c3:3},
-        {spent:1772.60, clicks:2368, impr:159973, c0:352, c1:58,  c2:4, c3:3},
-        {spent:1911.19, clicks:2957, impr:169155, c0:387, c1:87,  c2:6, c3:4},
-        {spent:2237.29, clicks:4025, impr:208496, c0:529, c1:104, c2:7, c3:7}
-      ],
-      "CC": [
-        {spent:1522.07, clicks:2344, impr:169744, c0:438, c1:87, c2:0, c3:0},
-        {spent:1291.70, clicks:2132, impr:170393, c0:407, c1:87, c2:4, c3:4},
-        {spent:1177.87, clicks:1829, impr:176539, c0:332, c1:73, c2:3, c3:1},
-        {spent:1166.67, clicks:1574, impr:154757, c0:294, c1:53, c2:0, c3:0},
-        {spent:1156.89, clicks:1587, impr:147015, c0:307, c1:58, c2:1, c3:0},
-        {spent:1129.56, clicks:1483, impr:146268, c0:270, c1:52, c2:1, c3:0},
-        {spent:940.49,  clicks:1238, impr:141835, c0:216, c1:45, c2:2, c3:2}
-      ],
-      "Spree": [
-        {spent:189.74, clicks:488, impr:24029, c0:52, c1:9,  c2:0, c3:0},
-        {spent:202.15, clicks:351, impr:13422, c0:31, c1:8,  c2:1, c3:1},
-        {spent:194.04, clicks:392, impr:19561, c0:43, c1:9,  c2:1, c3:1},
-        {spent:217.61, clicks:500, impr:26115, c0:37, c1:9,  c2:2, c3:2},
-        {spent:274.88, clicks:645, impr:37236, c0:45, c1:7,  c2:1, c3:1},
-        {spent:325.81, clicks:616, impr:32871, c0:43, c1:9,  c2:0, c3:0},
-        {spent:376.06, clicks:759, impr:38942, c0:68, c1:14, c2:0, c3:0}
-      ]
-    }
-  }
-];
-</script>
+<script src="data.js"></script>
 <script>
 /* =====================================================================
    RENDERING ENGINE — never needs editing
@@ -448,6 +242,180 @@ var osPillClass = { Android:"p-andr", iOS:"p-ios", Desktop:"p-desktop" };
 
 var currentClientIdx = 0;
 var charts = {};
+
+/* =====================================================================
+   FILTER STATE & HELPERS
+   ===================================================================== */
+var filterState = { cl: null, startIdx: 0, endIdx: 0, activeProds: [], year: "2026" };
+
+var MONTH_IDX = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+
+function labelToYMD(label, year) {
+  var p = label.split(" ");
+  var m = MONTH_IDX[p[0]]; var d = parseInt(p[1], 10);
+  return year + "-" + (m<10?"0":"")+m + "-" + (d<10?"0":"")+d;
+}
+function ymdToDate(ymd) {
+  var p = ymd.split("-");
+  return new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+}
+function extractYear(period) { var m = period.match(/(\d{4})/); return m ? m[1] : "2026"; }
+
+function initFilterBar(cl) {
+  filterState.cl = cl;
+  filterState.year = extractYear(cl.period);
+  filterState.startIdx = 0;
+  filterState.endIdx = cl.labels.length - 1;
+  filterState.activeProds = cl.products.slice();
+  document.getElementById("filter-start").value = labelToYMD(cl.labels[0], filterState.year);
+  document.getElementById("filter-end").value   = labelToYMD(cl.labels[cl.labels.length-1], filterState.year);
+  var container = document.getElementById("prod-pill-filter");
+  container.innerHTML = "";
+  cl.products.forEach(function(prod) {
+    var color = cl.productColors[prod];
+    var btn = document.createElement("button");
+    btn.className = "filter-pill on";
+    btn.textContent = prod;
+    btn.setAttribute("data-prod", prod);
+    btn.style.borderColor = color;
+    btn.style.color = color;
+    btn.style.setProperty("--pill-color", color);
+    btn.onclick = function() { toggleProdFilter(prod); };
+    container.appendChild(btn);
+  });
+}
+
+function toggleProdFilter(prod) {
+  var idx = filterState.activeProds.indexOf(prod);
+  if (idx >= 0) filterState.activeProds.splice(idx, 1);
+  else filterState.activeProds.push(prod);
+  document.querySelectorAll(".filter-pill").forEach(function(btn) {
+    var p = btn.getAttribute("data-prod");
+    var on = filterState.activeProds.indexOf(p) >= 0;
+    btn.classList.toggle("on", on);
+    if (on) { btn.style.background = btn.style.getPropertyValue("--pill-color") || filterState.cl.productColors[p]; btn.style.color = "#fff"; }
+    else     { btn.style.background = "transparent"; btn.style.color = btn.style.borderColor; }
+  });
+  applyFilters();
+}
+
+function onDateFilterChange() {
+  var cl = filterState.cl; if (!cl) return;
+  var sv = document.getElementById("filter-start").value;
+  var ev = document.getElementById("filter-end").value;
+  if (!sv || !ev) return;
+  var sd = ymdToDate(sv), ed = ymdToDate(ev);
+  var year = filterState.year;
+  var si = 0, ei = cl.labels.length - 1, firstFound = false;
+  cl.labels.forEach(function(lbl, i) {
+    var d = ymdToDate(labelToYMD(lbl, year));
+    if (!firstFound && d >= sd) { si = i; firstFound = true; }
+    if (d <= ed) ei = i;
+  });
+  if (!firstFound) si = 0;
+  if (si > ei) si = ei;
+  filterState.startIdx = si; filterState.endIdx = ei;
+  applyFilters();
+}
+
+function applyFilters() {
+  var cl = filterState.cl; if (!cl) return;
+  var si = filterState.startIdx, ei = filterState.endIdx, ap = filterState.activeProds;
+  var slicedLabels = cl.labels.slice(si, ei + 1);
+  var slicedDT     = cl.dayTotals.slice(si, ei + 1);
+
+  /* subtitle */
+  var yr = filterState.year;
+  document.getElementById("hdr-date").textContent =
+    slicedLabels[0] + " \u2013 " + slicedLabels[slicedLabels.length-1] + ", " + yr + " \u00b7 Ad ID level";
+
+  /* totals */
+  var kpi = cl.kpiConv;
+  var tot = { spent:0, clicks:0, impr:0 };
+  cl.convDefs.forEach(function(cd){ tot[cd.key] = 0; });
+  if (ap.length === cl.products.length) {
+    slicedDT.forEach(function(d){ tot.spent+=d.spent; tot.clicks+=d.clicks; tot.impr+=d.impr; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(d[cd.key]||0); }); });
+  } else {
+    ap.forEach(function(prod){ var pd=cl.prodDaily[prod]||[]; for(var i=si;i<=ei;i++) tot.spent+=(pd[i]||0); });
+    cl.prodOS.forEach(function(r){ if(ap.indexOf(r.product)>=0){ tot.clicks+=r.clicks; tot.impr+=r.impr; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(r[cd.key]||0); }); } });
+  }
+
+  /* KPI metrics */
+  var mg = document.getElementById("overview-metrics"); mg.innerHTML = "";
+  var kpiVal = tot[kpi]>0 ? fc(tot.spent/tot[kpi]) : "";
+  var mds = [["Spend",fc(tot.spent),false],["Impressions",fn(tot.impr),false],["Clicks",fn(tot.clicks),false],
+             ["CTR",fp(calcCTR(tot.clicks,tot.impr)),false],["CPC",fc(calcCPC(tot.spent,tot.clicks)),false]];
+  cl.convDefs.forEach(function(cd){ mds.push([cd.label,fn(tot[cd.key]),false]); });
+  mds.push(["CPA ("+cl.kpiLabel+")", kpiVal, true]);
+  mds.forEach(function(d){ var el=document.createElement("div"); el.className="metric"+(d[2]?" kpi-highlight":"");
+    el.innerHTML="<div class=\"metric-label\">"+d[0]+"</div><div class=\"metric-value\">"+d[1]+"</div>"; mg.appendChild(el); });
+
+  /* spendChart */
+  var spendData;
+  if (ap.length === cl.products.length) { spendData = slicedDT.map(function(d){ return d.spent; }); }
+  else { spendData = []; for(var i=si;i<=ei;i++){ var ds=0; ap.forEach(function(prod){ ds+=(cl.prodDaily[prod]?(cl.prodDaily[prod][i]||0):0); }); spendData.push(ds); } }
+  if (charts["spendChart"]) { charts["spendChart"].data.labels=slicedLabels; charts["spendChart"].data.datasets[0].data=spendData; charts["spendChart"].update(); }
+
+  /* prodSpendChart */
+  if (charts["prodSpendChart"]) {
+    charts["prodSpendChart"].data.labels = slicedLabels;
+    cl.products.forEach(function(prod, i){ charts["prodSpendChart"].data.datasets[i].data=(cl.prodDaily[prod]||[]).slice(si,ei+1); charts["prodSpendChart"].data.datasets[i].hidden=ap.indexOf(prod)<0; });
+    charts["prodSpendChart"].update();
+  }
+
+  /* convChart */
+  if (charts["convChart"]) {
+    charts["convChart"].data.labels = slicedLabels;
+    var noteEl = document.getElementById("conv-chart-note");
+    var last7Start = cl.labels.length - 7;
+    if (ap.length === cl.products.length) {
+      /* All products: dayTotals is exact */
+      cl.convDefs.forEach(function(cd, i) {
+        charts["convChart"].data.datasets[i].data = slicedDT.map(function(d){ return d[cd.key]; });
+      });
+      if (noteEl) noteEl.textContent = "";
+    } else if (cl.prodLast7Daily && si >= last7Start) {
+      /* Product subset, range entirely within last 7 days: use actual per-product data */
+      var l7off = si - last7Start;
+      cl.convDefs.forEach(function(cd, i) {
+        var convData = [];
+        for (var j = 0; j <= ei - si; j++) {
+          var v = 0;
+          ap.forEach(function(prod) {
+            var rows = cl.prodLast7Daily[prod];
+            if (rows && rows[l7off + j]) v += (rows[l7off + j][cd.key] || 0);
+          });
+          convData.push(v);
+        }
+        charts["convChart"].data.datasets[i].data = convData;
+      });
+      if (noteEl) noteEl.textContent = "";
+    } else {
+      /* Product subset, range beyond last 7 days: fall back to dayTotals, show warning */
+      cl.convDefs.forEach(function(cd, i) {
+        charts["convChart"].data.datasets[i].data = slicedDT.map(function(d){ return d[cd.key]; });
+      });
+      if (noteEl) noteEl.textContent = "Conversion breakdown by product not available for this date range";
+    }
+    charts["convChart"].update();
+  }
+
+  /* osChart */
+  if (charts["osChart"]) {
+    var osS={}; cl.prodOS.forEach(function(r){ if(ap.indexOf(r.product)>=0) osS[r.os]=(osS[r.os]||0)+r.spent; });
+    var osK=Object.keys(osS); var osV=osK.map(function(k){ return osS[k]; }); var osBg=["#1D9E75","#378ADD","#7F77DD","#EF9F27"];
+    charts["osChart"].data.labels=osK; charts["osChart"].data.datasets[0].data=osV; charts["osChart"].data.datasets[0].backgroundColor=osBg.slice(0,osK.length); charts["osChart"].update();
+  }
+
+  /* product cards */
+  document.querySelectorAll(".prod-card[data-product]").forEach(function(card){ card.style.display=ap.indexOf(card.getAttribute("data-product"))>=0?"":"none"; });
+
+  /* campaign rows */
+  document.querySelectorAll("#camp-body tr[data-product]").forEach(function(row){ row.style.display=ap.indexOf(row.getAttribute("data-product"))>=0?"":"none"; });
+
+  /* top ads sections */
+  document.querySelectorAll("#topads-container .card[data-product]").forEach(function(sec){ sec.style.display=ap.indexOf(sec.getAttribute("data-product"))>=0?"":"none"; });
+}
 
 function switchTab(id, btn) {
   document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
@@ -534,7 +502,7 @@ function renderClient(cl) {
       statsHtml += "<div class=\"stat\"><div class=\"stat-label\">"+cd.label+"</div><div class=\"stat-value\">"+fn(p[cd.key]||0)+"</div></div>";
     });
     statsHtml += "<div class=\"stat\"><div class=\"stat-label\">CPA ("+cl.kpiLabel+")</div><div class=\"stat-value\">"+cpas+"</div></div>";
-    pc.innerHTML += "<div class=\"prod-card\">"+
+    pc.innerHTML += "<div class=\"prod-card\" data-product=\""+prod+"\">"+
       "<div class=\"prod-name\" style=\"color:"+cl.productColors[prod]+"\">"+prod+"</div>"+
       "<div class=\"prod-os-row\">"+pills+"</div>"+
       "<div class=\"prod-stats\">"+statsHtml+"</div></div>";
@@ -637,7 +605,7 @@ function renderClient(cl) {
   cl.campaigns.forEach(function(r){
     var cpas = r[kpi]>0 ? fc(r.spent/r[kpi]) : "<span class=\"nil\">\u2014</span>";
     var convCells = cl.convDefs.map(function(cd){ return "<td class=\"num\">"+fn(r[cd.key]||0)+"</td>"; }).join("");
-    cb.innerHTML += "<tr>"+
+    cb.innerHTML += "<tr data-product=\""+r.product+"\">"+
       "<td><span class=\"camp-name\" title=\""+r.name+"\">"+r.name+"</span></td>"+
       "<td><span class=\"pill "+cl.productPills[r.product]+"\">"+r.product+"</span></td>"+
       "<td><span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span></td>"+
@@ -670,7 +638,7 @@ function renderClient(cl) {
         convCells+
         "<td class=\"num\">"+cpas+"</td></tr>";
     }).join("");
-    tac.innerHTML += "<div class=\"card\" style=\"margin-bottom:1.25rem;\">"+
+    tac.innerHTML += "<div class=\"card\" data-product=\""+prod+"\" style=\"margin-bottom:1.25rem;\">"+
       "<div class=\"card-title\" style=\"color:"+cl.productColors[prod]+"\">"+prod+" \u2014 top 5 ads by spend</div>"+
       "<div class=\"tbl-wrap\"><table><thead><tr>"+
       "<th>Ad ID</th><th>OS</th><th>Campaign</th>"+
@@ -748,6 +716,8 @@ function renderClient(cl) {
       cutout:"65%"
     }
   });
+
+  initFilterBar(cl);
 }
 
 /* build client switcher buttons */
@@ -764,6 +734,10 @@ CLIENTS.forEach(function(cl, i){
 
 /* initial render */
 renderClient(CLIENTS[0]);
+
+/* date filter listeners */
+document.getElementById("filter-start").addEventListener("change", onDateFilterChange);
+document.getElementById("filter-end").addEventListener("change", onDateFilterChange);
 </script>
 </body>
 </html>
