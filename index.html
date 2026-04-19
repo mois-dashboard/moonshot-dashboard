@@ -331,20 +331,20 @@ function applyFilters() {
 
   /* totals */
   var kpi = cl.kpiConv;
-  var tot = { spent:0, clicks:0, impr:0 };
+  var tot = { spent:0, clicks:0, impressions:0 };
   cl.convDefs.forEach(function(cd){ tot[cd.key] = 0; });
   if (ap.length === cl.products.length) {
-    slicedDT.forEach(function(d){ tot.spent+=d.spent; tot.clicks+=d.clicks; tot.impr+=d.impr; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(d[cd.key]||0); }); });
+    slicedDT.forEach(function(d){ tot.spent+=d.spent; tot.clicks+=d.clicks; tot.impressions+=d.impressions; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(d[cd.key]||0); }); });
   } else {
-    ap.forEach(function(prod){ var pd=cl.prodDaily[prod]||[]; for(var i=si;i<=ei;i++) tot.spent+=(pd[i]||0); });
-    cl.prodOS.forEach(function(r){ if(ap.indexOf(r.product)>=0){ tot.clicks+=r.clicks; tot.impr+=r.impr; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(r[cd.key]||0); }); } });
+    ap.forEach(function(prod){ var pd=cl.prodDaily[prod]||[]; for(var i=si;i<=ei;i++) tot.spent+=((pd[i]&&pd[i].spent)||0); });
+    cl.prodOS.forEach(function(r){ if(ap.indexOf(r.product)>=0){ tot.clicks+=r.clicks; tot.impressions+=r.impressions; cl.convDefs.forEach(function(cd){ tot[cd.key]+=(r[cd.key]||0); }); } });
   }
 
   /* KPI metrics */
   var mg = document.getElementById("overview-metrics"); mg.innerHTML = "";
   var kpiVal = tot[kpi]>0 ? fc(tot.spent/tot[kpi]) : "";
-  var mds = [["Spend",fc(tot.spent),false],["Impressions",fn(tot.impr),false],["Clicks",fn(tot.clicks),false],
-             ["CTR",fp(calcCTR(tot.clicks,tot.impr)),false],["CPC",fc(calcCPC(tot.spent,tot.clicks)),false]];
+  var mds = [["Spend",fc(tot.spent),false],["Impressions",fn(tot.impressions),false],["Clicks",fn(tot.clicks),false],
+             ["CTR",fp(calcCTR(tot.clicks,tot.impressions)),false],["CPC",fc(calcCPC(tot.spent,tot.clicks)),false]];
   cl.convDefs.forEach(function(cd){ mds.push([cd.label,fn(tot[cd.key]),false]); });
   mds.push(["CPA ("+cl.kpiLabel+")", kpiVal, true]);
   mds.forEach(function(d){ var el=document.createElement("div"); el.className="metric"+(d[2]?" kpi-highlight":"");
@@ -353,13 +353,13 @@ function applyFilters() {
   /* spendChart */
   var spendData;
   if (ap.length === cl.products.length) { spendData = slicedDT.map(function(d){ return d.spent; }); }
-  else { spendData = []; for(var i=si;i<=ei;i++){ var ds=0; ap.forEach(function(prod){ ds+=(cl.prodDaily[prod]?(cl.prodDaily[prod][i]||0):0); }); spendData.push(ds); } }
+  else { spendData = []; for(var i=si;i<=ei;i++){ var ds=0; ap.forEach(function(prod){ var _d=cl.prodDaily[prod]; ds+=(_d&&_d[i]?_d[i].spent:0); }); spendData.push(ds); } }
   if (charts["spendChart"]) { charts["spendChart"].data.labels=slicedLabels; charts["spendChart"].data.datasets[0].data=spendData; charts["spendChart"].update(); }
 
   /* prodSpendChart */
   if (charts["prodSpendChart"]) {
     charts["prodSpendChart"].data.labels = slicedLabels;
-    cl.products.forEach(function(prod, i){ charts["prodSpendChart"].data.datasets[i].data=(cl.prodDaily[prod]||[]).slice(si,ei+1); charts["prodSpendChart"].data.datasets[i].hidden=ap.indexOf(prod)<0; });
+    cl.products.forEach(function(prod, i){ charts["prodSpendChart"].data.datasets[i].data=(cl.prodDaily[prod]||[]).slice(si,ei+1).map(function(d){ return d.spent; }); charts["prodSpendChart"].data.datasets[i].hidden=ap.indexOf(prod)<0; });
     charts["prodSpendChart"].update();
   }
 
@@ -456,9 +456,9 @@ function renderClient(cl) {
   var kpiVal = t[kpi] > 0 ? fc(t.spent/t[kpi]) : "";
   var metricDefs = [
     ["Spend",       fc(t.spent),  false],
-    ["Impressions", fn(t.impr),   false],
+    ["Impressions", fn(t.impressions),   false],
     ["Clicks",      fn(t.clicks), false],
-    ["CTR",         fp(calcCTR(t.clicks,t.impr)), false],
+    ["CTR",         fp(calcCTR(t.clicks,t.impressions)), false],
     ["CPC",         fc(calcCPC(t.spent,t.clicks)), false]
   ];
   cl.convDefs.forEach(function(cd){
@@ -478,9 +478,9 @@ function renderClient(cl) {
   /* product cards */
   var pt = {};
   cl.prodOS.forEach(function(r){
-    if(!pt[r.product]) pt[r.product]={spent:0,clicks:0,impr:0,oses:[]};
+    if(!pt[r.product]) pt[r.product]={spent:0,clicks:0,impressions:0,oses:[]};
     cl.convDefs.forEach(function(cd){ if(!pt[r.product][cd.key]) pt[r.product][cd.key]=0; pt[r.product][cd.key]+=r[cd.key]; });
-    pt[r.product].spent+=r.spent; pt[r.product].clicks+=r.clicks; pt[r.product].impr+=r.impr;
+    pt[r.product].spent+=r.spent; pt[r.product].clicks+=r.clicks; pt[r.product].impressions+=r.impressions;
     pt[r.product].oses.push(r.os);
   });
   var pc = document.getElementById("prod-cards");
@@ -496,7 +496,7 @@ function renderClient(cl) {
     var statsHtml =
       "<div class=\"stat\"><div class=\"stat-label\">Spend</div><div class=\"stat-value\">"+fc(p.spent)+"</div></div>"+
       "<div class=\"stat\"><div class=\"stat-label\">Clicks</div><div class=\"stat-value\">"+fn(p.clicks)+"</div></div>"+
-      "<div class=\"stat\"><div class=\"stat-label\">CTR</div><div class=\"stat-value\">"+fp(calcCTR(p.clicks,p.impr))+"</div></div>"+
+      "<div class=\"stat\"><div class=\"stat-label\">CTR</div><div class=\"stat-value\">"+fp(calcCTR(p.clicks,p.impressions))+"</div></div>"+
       "<div class=\"stat\"><div class=\"stat-label\">CPC</div><div class=\"stat-value\">"+fc(calcCPC(p.spent,p.clicks))+"</div></div>";
     cl.convDefs.forEach(function(cd){
       statsHtml += "<div class=\"stat\"><div class=\"stat-label\">"+cd.label+"</div><div class=\"stat-value\">"+fn(p[cd.key]||0)+"</div></div>";
@@ -534,7 +534,7 @@ function renderClient(cl) {
         "<td><span class=\"pill "+(cl.productPills[prod]||"")+"\">"+prod+"</span></td>"+
         "<td class=\"num\">"+fc(r.spent)+"</td>"+
         "<td class=\"num\">"+fn(r.clicks)+"</td>"+
-        "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impr))+"</td>"+
+        "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
         "<td class=\"num\">"+fc(calcCPC(r.spent,r.clicks))+"</td>"+
         convCells7+"</tr>";
     });
@@ -563,7 +563,7 @@ function renderClient(cl) {
           "<td style=\"font-size:11px;color:#555;\">"+last7Labels[i]+"</td>"+
           "<td class=\"num\">"+fc(r.spent)+"</td>"+
           "<td class=\"num\">"+fn(r.clicks)+"</td>"+
-          "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impr))+"</td>"+
+          "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
           "<td class=\"num\">"+fc(calcCPC(r.spent,r.clicks))+"</td>"+
           convCellsD+"</tr>";
       }).join("");
@@ -594,7 +594,7 @@ function renderClient(cl) {
       "<td><span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span></td>"+
       "<td class=\"num\">"+fc(r.spent)+"</td>"+
       "<td class=\"num\">"+fn(r.clicks)+"</td>"+
-      "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impr))+"</td>"+
+      "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
       "<td class=\"num\">"+fc(calcCPC(r.spent,r.clicks))+"</td>"+
       convCells+
       "<td class=\"num\">"+cpas+"</td></tr>";
@@ -612,7 +612,7 @@ function renderClient(cl) {
       "<td><span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span></td>"+
       "<td class=\"num\">"+fc(r.spent)+"</td>"+
       "<td class=\"num\">"+fn(r.clicks)+"</td>"+
-      "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impr))+"</td>"+
+      "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
       "<td class=\"num\">"+fc(calcCPC(r.spent,r.clicks))+"</td>"+
       convCells+
       "<td class=\"num\">"+cpas+"</td></tr>";
@@ -634,7 +634,7 @@ function renderClient(cl) {
         "<td><span class=\"camp-name\" title=\""+r.campaign+"\">"+campShort+"</span></td>"+
         "<td class=\"num\">"+fc(r.spent)+"</td>"+
         "<td class=\"num\">"+fn(r.clicks)+"</td>"+
-        "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impr))+"</td>"+
+        "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
         "<td class=\"num\">"+fc(calcCPC(r.spent,r.clicks))+"</td>"+
         convCells+
         "<td class=\"num\">"+cpas+"</td></tr>";
@@ -668,7 +668,7 @@ function renderClient(cl) {
 
   destroyChart("prodSpendChart");
   var prodDatasets = cl.products.map(function(prod){
-    return {label:prod,data:cl.prodDaily[prod]||[],backgroundColor:cl.productChartColors[prod],borderRadius:3,borderSkipped:false,stack:"s"};
+    return {label:prod,data:(cl.prodDaily[prod]||[]).map(function(d){ return d.spent; }),backgroundColor:cl.productChartColors[prod],borderRadius:3,borderSkipped:false,stack:"s"};
   });
   charts["prodSpendChart"] = new Chart(document.getElementById("prodSpendChart"),{
     type:"bar",
