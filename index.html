@@ -609,7 +609,7 @@ function renderClient(cl) {
     cb.innerHTML += "<tr data-product=\""+r.product+"\">"+
       "<td><span class=\"camp-name\" title=\""+r.name+"\">"+r.name+"</span></td>"+
       "<td><span class=\"pill "+cl.productPills[r.product]+"\">"+r.product+"</span></td>"+
-      "<td><span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span></td>"+
+      "<td>"+(r.os?"<span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span>":"<span class=\"nil\">\u2014</span>")+"</td>"+
       "<td class=\"num\">"+fc(r.spent)+"</td>"+
       "<td class=\"num\">"+fn(r.clicks)+"</td>"+
       "<td class=\"num\">"+fp(calcCTR(r.clicks,r.impressions))+"</td>"+
@@ -630,7 +630,7 @@ function renderClient(cl) {
       var campShort = r.campaign.replace(cl.name+"_Adept_","").replace(cl.name+"_","");
       return "<tr>"+
         "<td style=\"font-family:monospace;font-size:11px;color:#555;\">"+r.id+"</td>"+
-        "<td><span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span></td>"+
+        "<td>"+(r.os?"<span class=\"pill "+osPillClass[r.os]+"\">"+r.os+"</span>":"<span class=\"nil\">\u2014</span>")+"</td>"+
         "<td><span class=\"camp-name\" title=\""+r.campaign+"\">"+campShort+"</span></td>"+
         "<td class=\"num\">"+fc(r.spent)+"</td>"+
         "<td class=\"num\">"+fn(r.clicks)+"</td>"+
@@ -720,6 +720,35 @@ function renderClient(cl) {
 
   initFilterBar(cl);
 }
+
+/* Normalize CLIENTS data to match rendering engine expectations.
+   Cowork may emit prodOS as a nested dict and topAds as a flat array;
+   the rendering engine expects prodOS as a flat array and topAds as a
+   per-product dict. Transform once here so no rendering code needs changing. */
+CLIENTS.forEach(function(cl) {
+  /* prodOS: {product:{os:{spent,clicks,impressions,...}}} → [{product,os,spent,...}] */
+  if (cl.prodOS && !Array.isArray(cl.prodOS)) {
+    var flat = [];
+    Object.keys(cl.prodOS).forEach(function(prod) {
+      Object.keys(cl.prodOS[prod]).forEach(function(os) {
+        var entry = { product: prod, os: os };
+        var src = cl.prodOS[prod][os];
+        Object.keys(src).forEach(function(k){ entry[k] = src[k]; });
+        flat.push(entry);
+      });
+    });
+    cl.prodOS = flat;
+  }
+  /* topAds: [{product,...}] → {product:[...]} */
+  if (cl.topAds && Array.isArray(cl.topAds)) {
+    var byProd = {};
+    cl.topAds.forEach(function(r) {
+      if (!byProd[r.product]) byProd[r.product] = [];
+      byProd[r.product].push(r);
+    });
+    cl.topAds = byProd;
+  }
+});
 
 /* build client switcher buttons */
 var btnContainer = document.getElementById("client-buttons");
